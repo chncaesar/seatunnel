@@ -21,7 +21,16 @@ import org.apache.seatunnel.common.exception.SeaTunnelErrorCode;
 
 public enum HttpConnectorErrorCode implements SeaTunnelErrorCode {
     FIELD_DATA_IS_INCONSISTENT("HTTP-01", "The field data is inconsistent"),
-    REQUEST_FAILED("HTTP-02", "The request is failed");
+    REQUEST_FAILED("HTTP-02", "The request is failed"),
+    FIELD_AUTH_IS_REQUIRED("HTTP-03", "Auth is required"),
+    AUTH_CONTENT_IS_REQUIRED("HTTP-04", "Auth content is required"),
+    FIELD_USERNAME_IS_REQUIRED("HTTP-05", "Username is required"),
+    FIELD_PASSWORD_IS_REQUIRED("HTTP-06", "Password is required"),
+    FIELD_URL_IS_REQUIRED("HTTP-07", "URL is required"),
+    HTTP_REQUEST_FAILED("HTTP-08", "HTTP request failed"),
+    HTTP_RESPONSE_PROCESS_FAILED("HTTP-09", "HTTP response process failed"),
+    FIELD_RESULT_FIELD_IS_REQUIRED("HTTP-10", "Result field is required"),
+    AUTH_TYPE_NOT_SUPPORTED("HTTP-11", "Auth type is not supported");
 
     private final String code;
     private final String description;
