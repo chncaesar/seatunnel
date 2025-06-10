@@ -86,6 +86,8 @@
         <module>connector-graphql</module>
         <module>connector-aerospike</module>
         <module>connector-hik</module>
+        <module>connector-emqx</module>
+
     </modules>
 
     <dependencyManagement>
