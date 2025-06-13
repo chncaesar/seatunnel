@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.http.source;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.seatunnel.shade.com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.seatunnel.shade.com.google.common.annotations.VisibleForTesting;
 import org.apache.seatunnel.shade.com.google.common.base.Strings;
@@ -73,6 +74,7 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
             Configuration.defaultConfiguration().addOptions(DEFAULT_OPTIONS);
     private boolean noMoreElementFlag = true;
     private Optional<PageInfo> pageInfoOptional = Optional.empty();
+    private String rawBody = null;
 
     public HttpSourceReader(
             HttpParameter httpParameter,
@@ -101,6 +103,8 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
         this.contentJson = contentJson;
         this.pageInfoOptional = Optional.ofNullable(pageInfo);
     }
+
+
 
     @Override
     public void open() {
@@ -206,14 +210,13 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
         }
 
         // 2. param in body
-        if (!Strings.isNullOrEmpty(this.httpParameter.getBody())) {
+        if (!Strings.isNullOrEmpty(this.rawBody)) {
             String processedBody =
                     processBodyString(
-                            this.httpParameter.getBody(),
+                            this.rawBody,
                             pageField,
                             pageValue,
                             usePlaceholderReplacement);
-
             // Process cursor if available
             if (pageInfo.getPageCursorFieldName() != null && pageInfo.getCursor() != null) {
                 processedBody =
@@ -283,13 +286,13 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
         if (pageField == null || pageValue == null || Strings.isNullOrEmpty(bodyString)) {
             return bodyString;
         }
-        if (usePlaceholderReplacement) {
+        String processedBody = bodyString;
+        if(usePlaceholderReplacement) {
             String unquotedPlaceholder = "${" + pageField + "}";
             if (bodyString.contains(unquotedPlaceholder)) {
-                bodyString = bodyString.replace(unquotedPlaceholder, pageValue.toString());
+                processedBody = bodyString.replace(unquotedPlaceholder, pageValue.toString());
             }
-
-            return bodyString;
+            return processedBody;
         } else {
             // Key-based replacement
             Map<String, Object> bodyMap =
@@ -298,8 +301,8 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
                 processBodyMapRecursively(bodyMap, pageField, pageValue);
                 return JsonUtils.toJsonString(bodyMap);
             }
-            return bodyString;
         }
+        return processedBody;
     }
 
     /**
@@ -337,6 +340,9 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
             if (pageInfoOptional.isPresent()) {
                 noMoreElementFlag = false;
                 PageInfo info = pageInfoOptional.get();
+                if(!Strings.isNullOrEmpty(this.httpParameter.getBody())) {
+                    this.rawBody = this.httpParameter.getBody();
+                }
                 // cursor pagination
                 if (HttpPaginationType.CURSOR.getCode().equals(info.getPageType())) {
                     while (!noMoreElementFlag) {
