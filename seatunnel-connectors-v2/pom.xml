@@ -87,7 +87,7 @@
         <module>connector-aerospike</module>
         <module>connector-hik</module>
         <module>connector-emqx</module>
-
+        <module>connector-hik</module>
     </modules>
 
     <dependencyManagement>
