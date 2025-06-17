@@ -58,6 +58,7 @@ public class HttpSource extends AbstractSingleSplitSource<SeaTunnelRow> {
     protected String contentField;
     protected JobContext jobContext;
     protected DeserializationSchema<SeaTunnelRow> deserializationSchema;
+    protected ReadonlyConfig pluginConfig;
 
     protected CatalogTable catalogTable;
 
@@ -65,6 +66,7 @@ public class HttpSource extends AbstractSingleSplitSource<SeaTunnelRow> {
         this.httpParameter.buildWithConfig(pluginConfig);
         buildSchemaWithConfig(pluginConfig);
         buildPagingWithConfig(pluginConfig);
+        this.pluginConfig = pluginConfig;
     }
 
     @Override
@@ -194,7 +196,8 @@ public class HttpSource extends AbstractSingleSplitSource<SeaTunnelRow> {
                 this.deserializationSchema,
                 jsonField,
                 contentField,
-                pageInfo);
+                pageInfo,
+                pluginConfig);
     }
 
     private JsonField getJsonField(Config jsonFieldConf) {

@@ -17,7 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.http.source;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.shade.com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.seatunnel.shade.com.google.common.annotations.VisibleForTesting;
 import org.apache.seatunnel.shade.com.google.common.base.Strings;
@@ -75,6 +75,8 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
     private boolean noMoreElementFlag = true;
     private Optional<PageInfo> pageInfoOptional = Optional.empty();
     private String rawBody = null;
+    private List<HttpSourceHook> hooks = new ArrayList<>();
+    private ReadonlyConfig pluginConfig ;
 
     public HttpSourceReader(
             HttpParameter httpParameter,
@@ -95,16 +97,16 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
             DeserializationSchema<SeaTunnelRow> deserializationSchema,
             JsonField jsonField,
             String contentJson,
-            PageInfo pageInfo) {
+            PageInfo pageInfo,
+            ReadonlyConfig pluginConfig) {
         this.context = context;
         this.httpParameter = httpParameter;
         this.deserializationCollector = new DeserializationCollector(deserializationSchema);
         this.jsonField = jsonField;
         this.contentJson = contentJson;
         this.pageInfoOptional = Optional.ofNullable(pageInfo);
+        this.pluginConfig = pluginConfig;
     }
-
-
 
     @Override
     public void open() {
@@ -118,7 +120,17 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
         }
     }
 
+    public void addHook(HttpSourceHook hook) {
+        if(hook == null) {
+            return;
+        }
+        this.hooks.add(hook);
+    }
+
     public void pollAndCollectData(Collector<SeaTunnelRow> output) throws Exception {
+        for (HttpSourceHook hook : this.hooks) {
+            hook.beforeRequest(pluginConfig);
+        }
         HttpResponse response =
                 httpClient.execute(
                         this.httpParameter.getUrl(),
@@ -350,7 +362,6 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
                         pollAndCollectData(output);
                         Thread.sleep(10);
                     }
-
                 } else {
                     // default page number pagination
                     Long pageIndex = info.getPageIndex();
@@ -381,6 +392,9 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
     }
 
     private void collect(Collector<SeaTunnelRow> output, String data) throws IOException {
+        for (HttpSourceHook hook : this.hooks) {
+            hook.afterRequest(pluginConfig, data);
+        }
         String contentData = data;
         if (contentJson != null) {
             contentData = JsonUtils.stringToJsonNode(getPartOfJson(data)).toString();
@@ -389,6 +403,7 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
             this.initJsonPath(jsonField);
             contentData = JsonUtils.toJsonNode(parseToMap(decodeJSON(data), jsonField)).toString();
         }
+
         // page
         if (pageInfoOptional.isPresent()) {
             PageInfo pageInfo = pageInfoOptional.get();
@@ -415,6 +430,7 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
                 } else {
                     // no 'total page' configured
                     int readSize = JsonUtils.stringToJsonNode(contentData).size();
+
                     // if read size < BatchSize : read finish
                     // if read size = BatchSize : read next page.
                     noMoreElementFlag = readSize < pageInfo.getBatchSize();
@@ -503,5 +519,9 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
                     JsonPath.compile(
                             jsonField.getFields().values().toArray(new String[] {})[index]);
         }
+    }
+
+    public HttpParameter getHttpParameter() {
+        return this.httpParameter;
     }
 }

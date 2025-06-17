@@ -361,6 +361,14 @@ public class HttpIT extends TestSuiteBase implements TestResource {
         Container.ExecResult execResult21 =
                 container.executeJob("/http_page_cursor_num_assert.conf");
         Assertions.assertEquals(0, execResult21.getExitCode());
+
+        Container.ExecResult execResult22 =
+                container.executeJob("/http_page_page_no_batch_size.conf");
+        Assertions.assertEquals(0, execResult22.getExitCode());
+
+        Container.ExecResult execResult23 =
+                container.executeJob("/hik_page_increase_page_no.conf");
+        Assertions.assertEquals(0, execResult23.getExitCode());
     }
 
     @TestTemplate

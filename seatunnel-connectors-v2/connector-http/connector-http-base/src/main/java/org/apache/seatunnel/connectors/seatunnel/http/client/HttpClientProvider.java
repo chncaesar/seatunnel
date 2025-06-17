@@ -17,6 +17,13 @@
 
 package org.apache.seatunnel.connectors.seatunnel.http.client;
 
+import org.apache.http.client.HttpClient;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustStrategy;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.seatunnel.connectors.seatunnel.http.exception.HttpConnectorErrorCode;
+import org.apache.seatunnel.connectors.seatunnel.http.exception.HttpConnectorException;
 import org.apache.seatunnel.shade.com.google.common.base.Strings;
 import org.apache.seatunnel.shade.com.typesafe.config.ConfigFactory;
 
@@ -58,6 +65,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -80,7 +92,24 @@ public class HttpClientProvider implements AutoCloseable {
     private final Retryer<CloseableHttpResponse> retryer;
 
     public HttpClientProvider(HttpParameter httpParameter) {
-        this.httpClient = HttpClients.createDefault();
+        SSLContextBuilder builder = new SSLContextBuilder();
+        builder.useProtocol("TLSv1.2");
+        SSLConnectionSocketFactory sslsf = null;
+        try {
+            builder.loadTrustMaterial(null, new TrustStrategy() {
+                @Override
+                public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                    return true;
+                }
+            });
+
+            sslsf = new SSLConnectionSocketFactory(builder.build());
+        } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
+            throw new HttpConnectorException(HttpConnectorErrorCode.REQUEST_FAILED, e.getMessage());
+        }
+        HttpClientBuilder hcBuilder = HttpClients.custom();
+        this.httpClient =  hcBuilder
+                .setSSLSocketFactory(sslsf).build();
         this.retryer = buildRetryer(httpParameter);
         this.requestConfig =
                 RequestConfig.custom()
@@ -524,5 +553,9 @@ public class HttpClientProvider implements AutoCloseable {
         if (Objects.nonNull(httpClient)) {
             httpClient.close();
         }
+    }
+
+    public HttpClient getHttpClient() {
+        return this.httpClient;
     }
 }

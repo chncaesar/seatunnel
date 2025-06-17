@@ -4614,6 +4614,79 @@
   },
   {
     "httpRequest": {
+      "method" : "POST",
+      "path": "/query/pages_batch_size",
+      "body" : {
+        "type" : "JSON",
+        "json" : {
+          "page" : "1"
+        }
+      }
+    },
+    "httpResponse": {
+      "body":
+      {
+        "status": null,
+        "msg": null,
+        "data": [
+          {
+            "name": "name1",
+            "age": 69
+          }
+        ],
+        "totalPage": 3
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method" : "POST",
+      "path": "/query/pages_batch_size",
+      "body" : {
+        "type" : "JSON",
+        "json" : {
+          "page" : "2"
+        }
+      }
+    },
+    "httpResponse": {
+      "body":
+      {
+        "status": null,
+        "msg": null,
+        "data": [
+          {
+            "name": "name2",
+            "age": 69
+          }
+        ],
+        "totalPage": 3
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method" : "POST",
+      "path": "/query/pages_batch_size",
+      "body" : {
+        "type" : "JSON",
+        "json" : {
+          "page" : "3"
+        }
+      }
+    },
+    "httpResponse": {
+      "body":
+      {
+        "status": null,
+        "msg": null,
+        "data": [],
+        "totalPage": 3
+      }
+    }
+  },
+  {
+    "httpRequest": {
       "method" : "GET",
       "path": "/query/pagesNoPageNum",
       "queryStringParameters": {
@@ -4826,6 +4899,69 @@
             "age": 32
           }
         ]
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/artemis/vehicle",
+      "body" : {
+        "type" : "JSON",
+        "json" : "{\"pageNo\":\"2\",\"pageSize\":\"1\",\"visitStartTimeBegin\":\"2025-01-01T00:00\",\"visitStartTimeEnd\":\"2025-06-16T00:00\"}"
+      }
+    },
+    "httpResponse": {
+      "body": {
+        "status": null,
+        "msg": null,
+        "data": [
+          {
+            "plate_number": "渝O15604",
+            "owner_id": "YG2W2JQB",
+            "entry_time": "2025-06-11T04:49:47.394731"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/artemis/vehicle",
+      "body" : {
+        "type" : "JSON",
+        "json" : "{\"pageNo\":\"1\",\"pageSize\":\"1\",\"visitStartTimeBegin\":\"2025-01-01T00:00\",\"visitStartTimeEnd\":\"2025-06-16T00:00\"}"
+      }
+    },
+    "httpResponse": {
+      "body": {
+        "status": null,
+        "msg": null,
+        "data": [
+          {
+            "plate_number": "渝O15604",
+            "owner_id": "YG2W2JQB",
+            "entry_time": "2025-06-11T04:49:47.394731"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/artemis/vehicle",
+      "body" : {
+        "type" : "JSON",
+        "json" : "{\"pageNo\":\"3\",\"pageSize\":\"1\",\"visitStartTimeBegin\":\"2025-01-01T00:00\",\"visitStartTimeEnd\":\"2025-06-16T00:00\"}"
+      }
+    },
+    "httpResponse": {
+      "body": {
+        "status": null,
+        "msg": null,
+        "data": []
       }
     }
   }
