@@ -74,8 +74,8 @@ public class HttpExtSource extends HttpSource {
             SingleSplitReaderContext readerContext) throws Exception {
 
         return new HttpSourceReader(
-                this.httpParameter,
                 readerContext,
+                this.httpParameter,
                 this.deserializationSchema,
                 jsonField,
                 contentField,

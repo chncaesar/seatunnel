@@ -35,7 +35,7 @@ public class HttpExtSourceReader extends HttpSourceReader {
     public HttpExtSourceReader(HttpParameter httpParameter, SingleSplitReaderContext context,
                                DeserializationSchema<SeaTunnelRow> deserializationSchema, JsonField jsonField,
                                String contentJson, PageInfo pageInfo) {
-        super(httpParameter, context, deserializationSchema, jsonField, contentJson, pageInfo);
+        super(context, httpParameter, deserializationSchema, jsonField, contentJson, pageInfo);
     }
 
     /**

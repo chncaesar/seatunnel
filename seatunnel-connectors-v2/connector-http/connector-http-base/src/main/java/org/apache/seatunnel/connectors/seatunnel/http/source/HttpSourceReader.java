@@ -78,6 +78,22 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
     private List<HttpSourceHook> hooks = new ArrayList<>();
     private ReadonlyConfig pluginConfig ;
 
+
+    public HttpSourceReader(
+            SingleSplitReaderContext context,
+            HttpParameter httpParameter,
+            DeserializationSchema<SeaTunnelRow> deserializationSchema,
+            JsonField jsonField,
+            String contentJson,
+            PageInfo pageInfo) {
+        this.context = context;
+        this.httpParameter = httpParameter;
+        this.deserializationCollector = new DeserializationCollector(deserializationSchema);
+        this.jsonField = jsonField;
+        this.contentJson = contentJson;
+        this.pageInfoOptional = Optional.of(pageInfo);
+    }
+
     public HttpSourceReader(
             HttpParameter httpParameter,
             SingleSplitReaderContext context,
