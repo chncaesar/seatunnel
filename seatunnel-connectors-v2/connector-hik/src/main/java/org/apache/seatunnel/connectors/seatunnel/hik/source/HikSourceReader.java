@@ -22,6 +22,7 @@ import org.apache.seatunnel.shade.com.fasterxml.jackson.core.JsonProcessingExcep
 import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.util.*;
 
 @Slf4j
@@ -60,6 +61,9 @@ public class HikSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> imp
     @Override
     public void beforeRequest(ReadonlyConfig pluginConfig) {
         HttpParameter httpParameter = httpSourceReader.getHttpParameter();
+        if(httpParameter.getHeaders().containsKey("x-ca-signature")) {
+            return;
+        }
         String path = pluginConfig.get(HikOptions.PATH);
         httpParameter.setUrl(pluginConfig.get(HikOptions.HOST) + path);
         httpParameter.setHeaders(
@@ -71,9 +75,7 @@ public class HikSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> imp
 
         Map<String, String> bodyMap = new HashMap<>();
         try {
-
             if (!StringUtils.isEmpty(httpParameter.getBody())) {
-
                 bodyMap = OBJECT_MAPPER.readValue(httpParameter.getBody(), Map.class);
             }
         } catch (JsonProcessingException e) {
@@ -94,18 +96,33 @@ public class HikSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> imp
         httpParameter.getHeaders().put("x-ca-timestamp", String.valueOf((new Date()).getTime()));
         httpParameter.getHeaders().put("x-ca-nonce", UUID.randomUUID().toString());
         httpParameter.getHeaders().put("x-ca-key", appKey);
-        httpParameter
-                .getHeaders()
-                .put(
-                        "x-ca-signature",
-                        SignUtil.sign(
-                                sk,
-                                httpParameter.getMethod().getMethod(),
-                                path,
-                                httpParameter.getHeaders(),
-                                httpParameter.getParams(),
-                                bodyMap,
-                                null));
+
+        String contentType = (String)httpParameter.getHeaders().get("Content-Type");
+        String sign = null;
+        if ("application/x-www-form-urlencoded;charset=UTF-8".equals(contentType)) {
+            String modelDatas = (String)bodyMap.get("modelDatas");
+            if (StringUtils.isNotBlank(modelDatas)) {
+                bodyMap.put("modelDatas", URLDecoder.decode(modelDatas));
+            }
+
+            sign = SignUtil.sign(sk,
+                httpParameter.getMethod().getMethod(),
+                path,
+                httpParameter.getHeaders(),
+                httpParameter.getParams(),
+                bodyMap,
+                null);
+        } else {
+            sign = SignUtil.sign(
+                    sk,
+                    httpParameter.getMethod().getMethod(),
+                    path,
+                    httpParameter.getHeaders(),
+                    httpParameter.getParams(),
+                    null,
+                    null);
+        }
+        httpParameter.getHeaders().put("x-ca-signature", sign);
         log.info("Hik sign finished");
     }
 
