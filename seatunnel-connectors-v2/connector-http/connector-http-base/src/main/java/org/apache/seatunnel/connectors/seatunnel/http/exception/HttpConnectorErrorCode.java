@@ -30,7 +30,8 @@ public enum HttpConnectorErrorCode implements SeaTunnelErrorCode {
     HTTP_REQUEST_FAILED("HTTP-08", "HTTP request failed"),
     HTTP_RESPONSE_PROCESS_FAILED("HTTP-09", "HTTP response process failed"),
     FIELD_RESULT_FIELD_IS_REQUIRED("HTTP-10", "Result field is required"),
-    AUTH_TYPE_NOT_SUPPORTED("HTTP-11", "Auth type is not supported");
+    AUTH_TYPE_NOT_SUPPORTED("HTTP-11", "Auth type is not supported"),
+    X_TENANT_ID_IS_REQUIRED("HTTP-12", "X-tenant-id is required");
 
     private final String code;
     private final String description;

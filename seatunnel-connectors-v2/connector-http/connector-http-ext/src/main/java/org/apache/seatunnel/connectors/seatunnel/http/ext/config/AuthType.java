@@ -19,7 +19,8 @@ package org.apache.seatunnel.connectors.seatunnel.http.ext.config;
 
 public enum AuthType {
     BASIC("basic"),
-    BEARER("bearer");
+    BEARER("bearer"),
+    X_ACCESS_TOKEN("X-access-token");
 
     private final String name;
 

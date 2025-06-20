@@ -91,7 +91,11 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
         this.deserializationCollector = new DeserializationCollector(deserializationSchema);
         this.jsonField = jsonField;
         this.contentJson = contentJson;
-        this.pageInfoOptional = Optional.of(pageInfo);
+        if(pageInfo == null ) {
+            this.pageInfoOptional = Optional.empty();
+        } else {
+            this.pageInfoOptional = Optional.of(pageInfo);
+        }
     }
 
     public HttpSourceReader(
@@ -120,8 +124,12 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
         this.deserializationCollector = new DeserializationCollector(deserializationSchema);
         this.jsonField = jsonField;
         this.contentJson = contentJson;
-        this.pageInfoOptional = Optional.ofNullable(pageInfo);
         this.pluginConfig = pluginConfig;
+        if(pageInfo == null ) {
+            this.pageInfoOptional = Optional.empty();
+        } else {
+            this.pageInfoOptional = Optional.of(pageInfo);
+        }
     }
 
     @Override

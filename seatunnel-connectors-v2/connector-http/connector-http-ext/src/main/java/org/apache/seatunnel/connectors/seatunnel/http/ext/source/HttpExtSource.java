@@ -24,7 +24,6 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.common.source.AbstractSingleSplitReader;
 import org.apache.seatunnel.connectors.seatunnel.common.source.SingleSplitReaderContext;
 import org.apache.seatunnel.connectors.seatunnel.http.config.HttpCommonOptions;
-import org.apache.seatunnel.connectors.seatunnel.http.config.HttpRequestMethod;
 import org.apache.seatunnel.connectors.seatunnel.http.config.HttpSourceOptions;
 import org.apache.seatunnel.connectors.seatunnel.http.exception.HttpConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.http.exception.HttpConnectorException;
@@ -34,21 +33,24 @@ import org.apache.seatunnel.connectors.seatunnel.http.source.HttpSourceReader;
 import org.apache.seatunnel.shade.com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.ObjectMapper;
 
+import javax.net.ssl.*;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Scanner;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.seatunnel.connectors.seatunnel.http.exception.HttpConnectorErrorCode.*;
 import static org.apache.seatunnel.connectors.seatunnel.http.ext.config.AuthType.BEARER;
+import static org.apache.seatunnel.connectors.seatunnel.http.ext.config.AuthType.X_ACCESS_TOKEN;
 import static org.apache.seatunnel.connectors.seatunnel.http.ext.config.HttpExtSourceOptions.*;
 import static org.apache.seatunnel.shade.com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
+@SuppressWarnings("unchecked")
 @Slf4j
 public class HttpExtSource extends HttpSource {
 
@@ -62,7 +64,6 @@ public class HttpExtSource extends HttpSource {
         super(pluginConfig);
         buildAuthentication(pluginConfig);
     }
-
 
     @Override
     public String getPluginName() {
@@ -99,15 +100,10 @@ public class HttpExtSource extends HttpSource {
             log.warn("The 'auth-type' field is not set in the HTTP source configuration");
             return;
         }
-        String authType = (String) authMap.get(AUTH_TYPE.key());
-        if (! BEARER.getName().equals(authType)) {
-            throw new HttpConnectorException(AUTH_TYPE_NOT_SUPPORTED, authType);
-        }
         if( ! authMap.containsKey(USERNAME.key())) {
             throw new HttpConnectorException(FIELD_USERNAME_IS_REQUIRED,
                     "The 'username' field is required for basic authentication in the HTTP source configuration.");
         }
-
         if (! authMap.containsKey(PASSWORD.key())) {
             throw new HttpConnectorException(HttpConnectorErrorCode.FIELD_PASSWORD_IS_REQUIRED,
                     "The 'password' field is required for basic authentication in the HTTP source configuration.");
@@ -120,10 +116,13 @@ public class HttpExtSource extends HttpSource {
             throw new HttpConnectorException(HttpConnectorErrorCode.FIELD_RESULT_FIELD_IS_REQUIRED,
                     "The 'result_field' field is required in the HTTP source configuration.");
         }
+        String authType = (String) authMap.get(AUTH_TYPE.key());
         String contentType = (String)authMap.getOrDefault(CONTENT_TYPE.key(),"application/json");
         String method = ((String)authMap.getOrDefault(HttpSourceOptions.METHOD.key(), "post")).toUpperCase();
         String username = (String)authMap.get(USERNAME.key());
         String password = (String)authMap.get(PASSWORD.key());
+        String usernameField = (String)authMap.getOrDefault(USER_NAME_FIELD.key(), USER_NAME_FIELD.defaultValue());
+        String passwordField = (String)authMap.getOrDefault(PASSWORD_FIELD.key(), PASSWORD_FIELD.defaultValue());
         String url = (String)authMap.get(URL.key());
         String resultField = (String)authMap.get(RESULT_FIELD.key());
         log.info("contentType: {}, method: {}, username: {}, url: {}, resultField: {}", contentType, method, username, url, resultField);
@@ -134,11 +133,18 @@ public class HttpExtSource extends HttpSource {
         String responseBody = null;
         try {
             URL requestUrl = new java.net.URL(url);
+            if ("https".equalsIgnoreCase(requestUrl.getProtocol())) {
+                // Ignore SSL certificate validation
+                trustAllHosts();
+            }
             conn = (HttpURLConnection) requestUrl.openConnection();
+            if (conn instanceof javax.net.ssl.HttpsURLConnection) {
+                ((javax.net.ssl.HttpsURLConnection) conn).setHostnameVerifier((hostname, session) -> true);
+            }
             conn.setRequestMethod(method);
             conn.setRequestProperty("Content-Type", contentType);
             conn.setDoOutput(true);
-            String requestBody = String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password);
+            String requestBody = String.format("{\"%s\":\"%s\",\"%s\":\"%s\"}", usernameField, username, passwordField, password);
             os = conn.getOutputStream();
             os.write(requestBody.getBytes(UTF_8));
             os.flush();
@@ -191,7 +197,16 @@ public class HttpExtSource extends HttpSource {
                     if(this.httpParameter.getHeaders() == null) {
                         this.httpParameter.setHeaders(new HashMap<>());
                     }
-                    this.httpParameter.getHeaders().put("Authorization", "Bearer " + value);
+                    if(X_ACCESS_TOKEN.getName().equals(authType)) {
+                        if(! pluginConfig.getOptional(X_TENANT_ID).isPresent()) {
+                            throw new HttpConnectorException(X_TENANT_ID_IS_REQUIRED, "X-tenant-id is required");
+                        }
+                        String xTokenId = pluginConfig.get(X_TENANT_ID);
+                        this.httpParameter.getHeaders().put(X_TENANT_ID.key(), xTokenId);
+                        this.httpParameter.getHeaders().put(X_ACCESS_TOKEN.getName(), (String)value);
+                    } else if(BEARER.getName().equals(authType)) {
+                        this.httpParameter.getHeaders().put("Authorization", "Bearer " + value);
+                    }
                     log.info("Authorization header set successfully with value: {}", value);
                 }
             }
@@ -199,6 +214,22 @@ public class HttpExtSource extends HttpSource {
         catch (JsonProcessingException e) {
             log.error("Failed to parse response body as JSON", e);
             throw new HttpConnectorException(HTTP_RESPONSE_PROCESS_FAILED, e.getMessage());
+        }
+    }
+
+    private void trustAllHosts() {
+        try {
+            SSLContext sc = SSLContext.getInstance("TLS");
+            sc.init(null, new TrustManager[]{new X509TrustManager() {
+                public void checkClientTrusted(X509Certificate[] chain, String authType) {}
+                public void checkServerTrusted(X509Certificate[] chain, String authType) {}
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[0];
+                }
+            }}, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+        } catch (Exception e) {
+            log.error("Failed to set up trust-all SSL context", e);
         }
     }
 }

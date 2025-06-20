@@ -35,6 +35,11 @@ public class HttpExtSourceOptions extends HttpCommonOptions {
                     .defaultValue("basic")
                     .withDescription("Http auth type, support basic and bearer");
 
+    public static final Option<String> X_TENANT_ID = Options.key("X-tenant-id")
+            .stringType()
+            .noDefaultValue()
+            .withDescription("X-tenant-id for MES system");
+
     public static final Option<String> CONTENT_TYPE =
             Options.key("Content-Type")
                     .stringType()
@@ -58,4 +63,16 @@ public class HttpExtSourceOptions extends HttpCommonOptions {
                     .noDefaultValue()
                     .withDescription(
                             "The field json path in the response body that contains the result data.");
+
+    public static final Option<String> USER_NAME_FIELD =
+            Options.key("user_name_field")
+                    .stringType()
+                    .defaultValue("username")
+                    .withDescription("username field name in auth");
+
+    public static final Option<String> PASSWORD_FIELD =
+            Options.key("password_field")
+                    .stringType()
+                    .defaultValue("pwd")
+                    .withDescription("password field in auth");
 }
