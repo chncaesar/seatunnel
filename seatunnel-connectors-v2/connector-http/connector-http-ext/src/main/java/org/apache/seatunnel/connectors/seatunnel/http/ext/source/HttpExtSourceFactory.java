@@ -24,6 +24,7 @@ import org.apache.seatunnel.api.source.SourceSplit;
 import org.apache.seatunnel.api.table.connector.TableSource;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactoryContext;
+import org.apache.seatunnel.connectors.seatunnel.http.ext.config.HttpExtSourceOptions;
 import org.apache.seatunnel.connectors.seatunnel.http.source.HttpSourceFactory;
 
 import java.io.Serializable;
@@ -43,6 +44,8 @@ public class HttpExtSourceFactory extends HttpSourceFactory {
 
     @Override
     public OptionRule optionRule() {
-        return getHttpBuilder().build();
+        OptionRule.Builder builder = getHttpBuilder();
+        return builder.build();
+
     }
 }

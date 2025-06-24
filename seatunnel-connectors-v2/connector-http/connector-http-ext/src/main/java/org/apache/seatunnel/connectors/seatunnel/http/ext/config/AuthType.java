@@ -20,7 +20,8 @@ package org.apache.seatunnel.connectors.seatunnel.http.ext.config;
 public enum AuthType {
     BASIC("basic"),
     BEARER("bearer"),
-    X_ACCESS_TOKEN("X-access-token");
+    X_ACCESS_TOKEN("X-access-token"),
+    SET_COOKIE("Set-Cookie");
 
     private final String name;
 
@@ -30,5 +31,14 @@ public enum AuthType {
 
     public String getName() {
         return name;
+    }
+
+    public static AuthType fromName(String name) {
+        for (AuthType type : AuthType.values()) {
+            if (type.name.equalsIgnoreCase(name)) {
+                return type;
+            }
+        }
+        throw new IllegalArgumentException("Unknown auth type: " + name);
     }
 }
